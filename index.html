@@ -41,8 +41,8 @@
       object-fit: cover;
       margin-right: 10px;
       border-radius: 4px;
-      display: block; /* prevents alt text showing as inline block glitches */
-      background: #111; /* subtle backdrop */
+      display: block;
+      background: #111;
     }
     #play-btn {
       background: #e00;
@@ -97,7 +97,7 @@
     const streamUrl = urlParams.get("stream");
     const metadataUrl = urlParams.get("metadata");
 
-    const DEFAULT_ART = "https://www.theaudiodb.com/images/media/track/thumb/default.png";
+    const DEFAULT_ART = "https://i.ibb.co/ccmTh1kB/ON-Air.png";
     const audio = new Audio(streamUrl);
     audio.crossOrigin = "anonymous";
 
@@ -112,12 +112,12 @@
     let lastChangeTime = Date.now();
     const FALLBACK_TIMEOUT = 600000; // 10 minutes
 
-    // Ensure default art is always present and never shows the alt text
+    // Always start with default art
     function setDefaultArt() {
       albumArt.src = DEFAULT_ART;
     }
     albumArt.onerror = setDefaultArt;
-    setDefaultArt(); // set immediately on load
+    setDefaultArt();
 
     document.body.classList.add("dark");
 
@@ -146,23 +146,19 @@
       setDefaultArt();
     }
 
-    // Try to parse Shoutcast stats as JSON, fallback to XML/text
     async function fetchMetadata() {
       if (!metadataUrl) return;
 
       try {
         const res = await fetch(metadataUrl, { cache: "no-store" });
         const contentType = res.headers.get("content-type") || "";
-
         let song = "";
 
         if (contentType.includes("application/json")) {
           const data = await res.json();
-          // Common Shoutcast field names
           song = (data.currentSong || data.songtitle || data.streamTitle || "").trim();
         } else {
           const text = await res.text();
-          // If it's XML, try to extract <SONGTITLE> or similar
           if (text.trim().startsWith("<")) {
             const parser = new DOMParser();
             const xml = parser.parseFromString(text, "application/xml");
@@ -173,18 +169,15 @@
               xml.querySelector("streamTitle");
             song = (songNode ? songNode.textContent : "").trim();
           } else {
-            // Plain text fallback (e.g., "Artist - Title")
             song = text.trim();
           }
         }
 
-        // Immediate fallback if no metadata
         if (!song) {
           showFallback();
           return;
         }
 
-        // Update if changed, otherwise check timeout
         if (song !== currentSong) {
           currentSong = song;
           lastChangeTime = Date.now();
@@ -193,7 +186,7 @@
         } else if (Date.now() - lastChangeTime > FALLBACK_TIMEOUT) {
           showFallback();
         }
-      } catch (e) {
+      } catch {
         showFallback();
       }
     }
@@ -211,12 +204,7 @@
         const res = await fetch(apiUrl, { cache: "no-store" });
         const data = await res.json();
         const art = data?.track?.[0]?.strTrackThumb;
-
-        if (art) {
-          albumArt.src = art;
-        } else {
-          setDefaultArt();
-        }
+        albumArt.src = art || DEFAULT_ART;
       } catch {
         setDefaultArt();
       }
