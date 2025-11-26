@@ -102,6 +102,8 @@
 
     let isPlaying = false;
     let currentSong = "";
+    let lastChangeTime = Date.now();
+    const FALLBACK_TIMEOUT = 600000; // 10 minutes
 
     document.body.classList.add("dark");
 
@@ -132,15 +134,33 @@
         .then((res) => res.text())
         .then((data) => {
           const song = data.trim();
-          songInfo.textContent = song;
+
+          // Immediate fallback if metadata is empty
+          if (!song) {
+            showFallback();
+            return;
+          }
+
           if (song !== currentSong) {
             currentSong = song;
+            lastChangeTime = Date.now();
+            songInfo.textContent = song;
             fetchAlbumArt(song);
+          } else {
+            // If metadata hasn't changed for 10 minutes, fallback
+            if (Date.now() - lastChangeTime > FALLBACK_TIMEOUT) {
+              showFallback();
+            }
           }
         })
         .catch(() => {
-          songInfo.textContent = "Unable to load metadata";
+          showFallback();
         });
+    }
+
+    function showFallback() {
+      songInfo.textContent = "Radio - On Air";
+      setDefaultArt();
     }
 
     function fetchAlbumArt(song) {
