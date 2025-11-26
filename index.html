@@ -84,12 +84,14 @@
     #right-section {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: 320px;
       margin-right: 10px;
     }
 
     #volume-slider {
       width: 90px;
-      margin-right: 6px;
       accent-color: #007bff;
     }
 
@@ -101,8 +103,8 @@
       font-size: 13px;
       cursor: pointer;
       border-radius: 4px;
-      margin-left: 3px;
       white-space: nowrap;
+      flex-shrink: 0;
     }
 
     #powered-by {
