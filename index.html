@@ -33,6 +33,7 @@
     #left-section {
       display: flex;
       align-items: center;
+      min-width: 140px;
     }
     #album-art {
       width: 50px;
@@ -40,6 +41,8 @@
       object-fit: cover;
       margin-right: 10px;
       border-radius: 4px;
+      display: block; /* prevents alt text showing as inline block glitches */
+      background: #111; /* subtle backdrop */
     }
     #play-btn {
       background: #e00;
@@ -54,9 +57,12 @@
       flex-grow: 1;
       text-align: center;
       padding: 0 20px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     #volume-slider {
-      width: 100px;
+      width: 110px;
       margin-right: 15px;
       accent-color: #007bff; /* Blue slider */
     }
@@ -91,6 +97,7 @@
     const streamUrl = urlParams.get("stream");
     const metadataUrl = urlParams.get("metadata");
 
+    const DEFAULT_ART = "https://www.theaudiodb.com/images/media/track/thumb/default.png";
     const audio = new Audio(streamUrl);
     audio.crossOrigin = "anonymous";
 
@@ -104,6 +111,13 @@
     let currentSong = "";
     let lastChangeTime = Date.now();
     const FALLBACK_TIMEOUT = 600000; // 10 minutes
+
+    // Ensure default art is always present and never shows the alt text
+    function setDefaultArt() {
+      albumArt.src = DEFAULT_ART;
+    }
+    albumArt.onerror = setDefaultArt;
+    setDefaultArt(); // set immediately on load
 
     document.body.classList.add("dark");
 
@@ -127,44 +141,65 @@
       audio.volume = volumeSlider.value;
     });
 
-    function fetchMetadata() {
-      if (!metadataUrl) return;
-
-      fetch(metadataUrl)
-        .then((res) => res.text())
-        .then((data) => {
-          const song = data.trim();
-
-          // Immediate fallback if metadata is empty
-          if (!song) {
-            showFallback();
-            return;
-          }
-
-          if (song !== currentSong) {
-            currentSong = song;
-            lastChangeTime = Date.now();
-            songInfo.textContent = song;
-            fetchAlbumArt(song);
-          } else {
-            // If metadata hasn't changed for 10 minutes, fallback
-            if (Date.now() - lastChangeTime > FALLBACK_TIMEOUT) {
-              showFallback();
-            }
-          }
-        })
-        .catch(() => {
-          showFallback();
-        });
-    }
-
     function showFallback() {
       songInfo.textContent = "Radio - On Air";
       setDefaultArt();
     }
 
-    function fetchAlbumArt(song) {
-      const [artist, title] = song.split(" - ");
+    // Try to parse Shoutcast stats as JSON, fallback to XML/text
+    async function fetchMetadata() {
+      if (!metadataUrl) return;
+
+      try {
+        const res = await fetch(metadataUrl, { cache: "no-store" });
+        const contentType = res.headers.get("content-type") || "";
+
+        let song = "";
+
+        if (contentType.includes("application/json")) {
+          const data = await res.json();
+          // Common Shoutcast field names
+          song = (data.currentSong || data.songtitle || data.streamTitle || "").trim();
+        } else {
+          const text = await res.text();
+          // If it's XML, try to extract <SONGTITLE> or similar
+          if (text.trim().startsWith("<")) {
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(text, "application/xml");
+            const songNode =
+              xml.querySelector("SONGTITLE") ||
+              xml.querySelector("currentSong") ||
+              xml.querySelector("songtitle") ||
+              xml.querySelector("streamTitle");
+            song = (songNode ? songNode.textContent : "").trim();
+          } else {
+            // Plain text fallback (e.g., "Artist - Title")
+            song = text.trim();
+          }
+        }
+
+        // Immediate fallback if no metadata
+        if (!song) {
+          showFallback();
+          return;
+        }
+
+        // Update if changed, otherwise check timeout
+        if (song !== currentSong) {
+          currentSong = song;
+          lastChangeTime = Date.now();
+          songInfo.textContent = song;
+          fetchAlbumArt(song);
+        } else if (Date.now() - lastChangeTime > FALLBACK_TIMEOUT) {
+          showFallback();
+        }
+      } catch (e) {
+        showFallback();
+      }
+    }
+
+    async function fetchAlbumArt(song) {
+      const [artist, title] = song.split(" - ").map(s => s && s.trim());
       if (!artist || !title) {
         setDefaultArt();
         return;
@@ -172,17 +207,19 @@
 
       const apiUrl = `https://theaudiodb.com/api/v1/json/123/searchtrack.php?s=${encodeURIComponent(artist)}&t=${encodeURIComponent(title)}`;
 
-      fetch(apiUrl)
-        .then((res) => res.json())
-        .then((data) => {
-          const art = data?.track?.[0]?.strTrackThumb;
-          albumArt.src = art || "https://www.theaudiodb.com/images/media/track/thumb/default.png";
-        })
-        .catch(setDefaultArt);
-    }
+      try {
+        const res = await fetch(apiUrl, { cache: "no-store" });
+        const data = await res.json();
+        const art = data?.track?.[0]?.strTrackThumb;
 
-    function setDefaultArt() {
-      albumArt.src = "https://www.theaudiodb.com/images/media/track/thumb/default.png";
+        if (art) {
+          albumArt.src = art;
+        } else {
+          setDefaultArt();
+        }
+      } catch {
+        setDefaultArt();
+      }
     }
 
     setInterval(fetchMetadata, 5000);
