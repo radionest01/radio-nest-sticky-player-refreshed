@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Custom Radio Player</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     :root {
       --accent: #000;
@@ -32,7 +30,7 @@
       color: var(--text-light);
       display: flex;
       align-items: center;
-      padding: 10px 16px 14px 10px; /* left, right, bottom padding */
+      padding: 10px;
       z-index: 9999;
       border-top: 1px solid #ccc;
       box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
@@ -52,9 +50,7 @@
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
     }
-    #album-art.spinning {
-      animation: spin 4s linear infinite;
-    }
+    #album-art.spinning { animation: spin 4s linear infinite; }
 
     #play-icon {
       cursor: pointer;
@@ -62,9 +58,7 @@
       display: flex;
       align-items: center;
     }
-    #play-icon svg {
-      vertical-align: middle;
-    }
+    #play-icon svg { vertical-align: middle; }
 
     #station-text {
       display: flex;
@@ -84,6 +78,7 @@
       display: flex;
       margin-left: auto;
       align-items: center;
+      padding-right: 12px; /* gap from right edge */
     }
 
     #volume-slider {
@@ -102,12 +97,8 @@
       cursor: pointer;
       transition: box-shadow 0.3s ease;
     }
-    .status-btn:hover {
-      box-shadow: 0 0 6px var(--accent);
-    }
-    .status-btn.pulsing {
-      animation: pulse 2s infinite;
-    }
+    .status-btn:hover { box-shadow: 0 0 6px var(--accent); }
+    .status-btn.pulsing { animation: pulse 2s infinite; }
 
     #live-badge {
       display: none;
@@ -117,6 +108,8 @@
       font-weight: bold;
       border: 2.5px solid red;
     }
+
+    #powered-by { margin-right: 4px; } /* extra breathing room */
 
     @keyframes pulse {
       0% { transform: scale(1); opacity: 1; }
