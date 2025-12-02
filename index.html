@@ -24,6 +24,8 @@
       z-index: 9999;
       border-top: 1px solid #ccc;
       box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+      background-color: #000; /* start black */
+      color: #fff; /* start white text */
     }
 
     #album-art {
@@ -82,6 +84,7 @@
       background: transparent;
       cursor: pointer;
       transition: box-shadow 0.3s ease;
+      border: 2px solid currentColor;
     }
     .status-btn:hover { box-shadow: 0 0 6px currentColor; }
     .status-btn.pulsing { animation: pulse 2s infinite; }
@@ -95,7 +98,13 @@
       border: 2.5px solid red;
     }
 
-    #powered-by { margin-right: 4px; }
+    #powered-by { margin-right: 8px; }
+
+    #theme-toggle {
+      cursor: pointer;
+      font-size: 20px;
+      margin-left: 8px;
+    }
 
     @keyframes pulse {
       0% { transform: scale(1); opacity: 1; }
@@ -108,7 +117,7 @@
   <div id="radio-player">
     <img id="album-art" src="" alt="Station Logo" />
     <div id="play-icon">
-      <svg viewBox="0 0 24 24" width="28" height="28">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="#fff" stroke="#fff" stroke-width="2">
         <path d="M8 5v14l11-7-11-7z"></path>
       </svg>
     </div>
@@ -119,6 +128,7 @@
       <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="1" />
       <span id="live-badge" class="status-btn">Live Now</span>
       <button id="powered-by" class="status-btn" onclick="window.open('https://myradionest.com','_blank')">Powered by Radio Nest</button>
+      <span id="theme-toggle">🌞</span>
     </div>
   </div>
 
@@ -127,45 +137,10 @@
     const stationNameParam = urlParams.get("name") || "My Radio";
     const streamUrlParam = urlParams.get("stream") || "https://defaultstream.com/stream";
     const logoUrlParam = urlParams.get("logo") || "https://defaultlogo.com/logo.png";
-    const bgParam = urlParams.get("bg") || "#ffffff";
 
-    // Apply parameters
     document.getElementById("station-name").textContent = stationNameParam;
     document.getElementById("album-art").src = logoUrlParam;
-    document.getElementById("radio-player").style.backgroundColor = bgParam;
 
-    // Brightness detection for text color
-    function getBrightness(hex) {
-      hex = hex.replace("#", "");
-      if (hex.length === 3) hex = hex.split("").map(c => c + c).join("");
-      const r = parseInt(hex.substr(0,2),16);
-      const g = parseInt(hex.substr(2,2),16);
-      const b = parseInt(hex.substr(4,2),16);
-      return (r * 299 + g * 587 + b * 114) / 1000;
-    }
-
-    let textColor = "#000";
-    if (bgParam.startsWith("#")) {
-      const brightness = getBrightness(bgParam);
-      textColor = brightness > 128 ? "#000" : "#fff";
-    } else {
-      textColor = "#fff"; // fallback for named colors
-    }
-
-    // Apply text/button colors
-    document.body.style.color = textColor;
-    document.getElementById("station-name").style.color = textColor;
-    document.querySelectorAll(".status-btn").forEach(btn => {
-      btn.style.color = textColor;
-      btn.style.borderColor = textColor;
-    });
-    document.querySelectorAll("#play-icon svg").forEach(svg => {
-      svg.setAttribute("fill", textColor);
-      svg.setAttribute("stroke", textColor);
-    });
-    document.getElementById("volume-slider").style.accentColor = textColor;
-
-    // Audio setup
     const audio = new Audio(streamUrlParam);
     audio.crossOrigin = "anonymous";
 
@@ -174,31 +149,35 @@
     const liveBadge = document.getElementById("live-badge");
     const volumeSlider = document.getElementById("volume-slider");
     const poweredBy = document.getElementById("powered-by");
+    const themeToggle = document.getElementById("theme-toggle");
+    const player = document.getElementById("radio-player");
 
     let isPlaying = false;
+    let isDark = true;
 
-    const getPlayIcon = () => `
-      <svg viewBox="0 0 24 24" width="28" height="28" fill="${textColor}" stroke="${textColor}" stroke-width="2">
+    const getPlayIcon = (color) => `
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="${color}" stroke="${color}" stroke-width="2">
         <path d="M8 5v14l11-7-11-7z"></path>
       </svg>`;
-    const getPauseIcon = () => `
-      <svg viewBox="0 0 24 24" width="28" height="28" fill="${textColor}" stroke="${textColor}" stroke-width="2">
+    const getPauseIcon = (color) => `
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="${color}" stroke="${color}" stroke-width="2">
         <path d="M6 5h4v14H6zM14 5h4v14h-4z"></path>
       </svg>`;
 
     function updatePlayerState() {
+      const color = isDark ? "#fff" : "#000";
       if (isPlaying) {
         liveBadge.style.display = "inline-block";
         liveBadge.classList.add("pulsing");
         poweredBy.classList.add("pulsing");
         albumArt.classList.add("spinning");
-        playIcon.innerHTML = getPauseIcon();
+        playIcon.innerHTML = getPauseIcon(color);
       } else {
         liveBadge.style.display = "none";
         liveBadge.classList.remove("pulsing");
         poweredBy.classList.remove("pulsing");
         albumArt.classList.remove("spinning");
-        playIcon.innerHTML = getPlayIcon();
+        playIcon.innerHTML = getPlayIcon(color);
       }
     }
 
@@ -212,11 +191,26 @@
       updatePlayerState();
     }
 
+    function toggleTheme() {
+      if (isDark) {
+        player.style.backgroundColor = "#fff";
+        player.style.color = "#000";
+        themeToggle.textContent = "🌙";
+      } else {
+        player.style.backgroundColor = "#000";
+        player.style.color = "#fff";
+        themeToggle.textContent = "🌞";
+      }
+      isDark = !isDark;
+      updatePlayerState();
+    }
+
     albumArt.addEventListener("click", togglePlayback);
     playIcon.addEventListener("click", togglePlayback);
     volumeSlider.addEventListener("input", () => {
       audio.volume = volumeSlider.value;
     });
+    themeToggle.addEventListener("click", toggleTheme);
   </script>
 </body>
 </html>
