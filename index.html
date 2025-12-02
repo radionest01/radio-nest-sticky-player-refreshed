@@ -24,8 +24,8 @@
       z-index: 9999;
       border-top: 1px solid #ccc;
       box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-      background-color: #000; /* start black */
-      color: #fff; /* start white text */
+      background-color: #000; /* start dark */
+      color: #fff;
     }
 
     #album-art {
@@ -193,17 +193,32 @@
 
     function toggleTheme() {
       if (isDark) {
+        // Switch to light mode
         player.style.backgroundColor = "#fff";
         player.style.color = "#000";
         themeToggle.textContent = "🌙";
+        themeToggle.style.color = "#000";
+        poweredBy.style.color = "#000";
+        poweredBy.style.borderColor = "#000";
+        liveBadge.style.color = "#fff"; // keep live badge readable
       } else {
+        // Switch to dark mode
         player.style.backgroundColor = "#000";
         player.style.color = "#fff";
         themeToggle.textContent = "🌞";
+        themeToggle.style.color = "#fff";
+        poweredBy.style.color = "#fff";
+        poweredBy.style.borderColor = "#fff";
+        liveBadge.style.color = "#fff";
       }
       isDark = !isDark;
       updatePlayerState();
     }
+
+    // Initial state fix
+    themeToggle.style.color = "#fff";
+    poweredBy.style.color = "#fff";
+    poweredBy.style.borderColor = "#fff";
 
     albumArt.addEventListener("click", togglePlayback);
     playIcon.addEventListener("click", togglePlayback);
